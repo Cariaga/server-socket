@@ -3,11 +3,9 @@
 // set up ========================
 var express = require('express');
 var app = express(); // create our app w/ express
-var fs = require('fs')
 var morgan = require('morgan'); // log requests to the console (express4)
 var bodyParser = require('body-parser'); // pull information from HTML POST (express4)
-var mongoose = require('mongoose'); // mongoose for mongodb
-var database = require('./config/database'); //load the database config
+
 
 // configuration =================
 app.use(express.static(__dirname + '/public')); // set the static files location /public/img will be /img for users
@@ -20,9 +18,13 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 
 // connect to MongoDB database
-mongoose.connect(database.url);
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
+let query = "";
+console.log(query);
+DBConnect.DBConnect(query,function(response){
+  if(response!=undefined){
+
+  }
+});
 
 // listen (start app with node server.js) ======================================
 app.listen(port, ip);
