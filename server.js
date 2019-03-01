@@ -6,13 +6,25 @@ var app = express(); // create our app w/ express
 var morgan = require('morgan'); // log requests to the console (express4)
 var bodyParser = require('body-parser'); // pull information from HTML POST (express4)
 var beautify = require('json-beautify');
+const stringify = require('json-stringify');
 const Enumerable = require('linq');
 // configuration =================
-app.use(express.static(__dirname + '/public')); // set the static files location /public/img will be /img for users
+//app.use(express.static(__dirname + '/public')); // set the static files location /public/img will be /img for users
+const url = require('url');
+var uuidv4 = require('uuid/v4');
+var request = require('request');
+
+app.use(express.static('AdminSocket'));
 app.use(morgan('combined')); // log every request to the console
 app.use(bodyParser.urlencoded({'extended': 'true'})); // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // parse application/json
 app.use(bodyParser.json({type: 'application/vnd.api+json'})); // parse application/vnd.api+json as json
+
+
+let ConnectionMode=require('./API/SharedController/ConnectionMode');
+
+
+
 let selectedport = 3000;
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || selectedport,
     ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
@@ -35,6 +47,14 @@ app.listen(port, ip);
     return Enumerable.from(distinctlist).first(x => x.UserAccountID == LookUp);
   }
   
+function IsJsonString(str) {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
+}
   
   function getRandomInt(min, max) {
     min = Math.ceil(min);
