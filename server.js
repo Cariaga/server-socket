@@ -2,6 +2,7 @@
 
 // set up ========================
 var express = require('express');
+const routes = require('express').Router();
 var app = express(); // create our app w/ express
 var morgan = require('morgan'); // log requests to the console (express4)
 var bodyParser = require('body-parser'); // pull information from HTML POST (express4)
@@ -25,7 +26,7 @@ let ConnectionMode=require('./API/SharedController/ConnectionMode');
 
 
 
-let selectedport = 8080;
+let selectedport = 3000;
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || selectedport,
     ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 // listen (start app with node server.js) ======================================
@@ -873,4 +874,5 @@ function IsJsonString(str) {
         }
     });*/
   }
-module.exports = app;
+  module.exports = routes;
+  module.exports = app;
