@@ -9,18 +9,36 @@ var bodyParser = require('body-parser'); // pull information from HTML POST (exp
 var beautify = require('json-beautify');
 const stringify = require('json-stringify');
 const Enumerable = require('linq');
+var cors = require('cors');
 // configuration =================
 //app.use(express.static(__dirname + '/public')); // set the static files location /public/img will be /img for users
 const url = require('url');
 var uuidv4 = require('uuid/v4');
 var request = require('request');
+app.use(function (req, res, next) {
+  
+  // Website you wish to allow to connect
+  var allowedOrigins = ['http://127.0.0.1:8020', 'http://localhost:8020', 'http://127.0.0.1:8080', 'http://127.0.0.1:9000', 'http://localhost:9000', 'http://localhost:8080'];
+  var origin = req.headers.origin;
+  res.header("Access-Control-Allow-Origin", "*");
+  // Request methods you wish to allow
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,OPTIONS');
+  // Request headers you wish to allow
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type', 'X-Auth-Token');
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.header('Access-Control-Allow-Credentials', true);
+    next();
+});
 
 app.use(express.static('AdminSocket'));
 app.use(morgan('combined')); // log every request to the console
 app.use(bodyParser.urlencoded({'extended': 'true'})); // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // parse application/json
 app.use(bodyParser.json({type: 'application/vnd.api+json'})); // parse application/vnd.api+json as json
-
+app.options('*', cors());//to support webgl request and resolve post routing to option 
 
 let ConnectionMode=require('./API/SharedController/ConnectionMode');
 
