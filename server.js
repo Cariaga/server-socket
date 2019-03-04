@@ -1,5 +1,6 @@
 // server.js
-
+"use strict";
+let ServerMode = "Debug";
 // set up ========================
 var express = require('express');
 const routes = require('express').Router();
