@@ -25,7 +25,7 @@ let ConnectionMode=require('./API/SharedController/ConnectionMode');
 
 
 
-let selectedport = 3000;
+let selectedport = 8080;
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || selectedport,
     ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 // listen (start app with node server.js) ======================================
