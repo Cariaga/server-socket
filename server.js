@@ -72,7 +72,7 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
 let ConnectionMode=require('./API/SharedController/ConnectionMode');
 var uuidv4 = require('uuid/v4');
 //--testing for season based authentication END
-app.use(express.static('AdminSocket'));
+
 
 //--Login End
 app.get('/',function (req, res) {
@@ -82,7 +82,7 @@ app.get('/',function (req, res) {
 console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode());
 const http = require('http');
 //---POKER ROUTING START
-
+app.use(express.static('AdminSocket'));
 
 let totalSocketBytes=0;
 var sizeof = require('object-sizeof');
