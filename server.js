@@ -72,6 +72,7 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
 let ConnectionMode=require('./API/SharedController/ConnectionMode');
 var uuidv4 = require('uuid/v4');
 //--testing for season based authentication END
+app.use(express.static('AdminSocket'));
 
 //--Login End
 app.get('/',function (req, res) {
@@ -80,21 +81,21 @@ app.get('/',function (req, res) {
 });
 console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode());
 const http = require('http');
-
-
-
-/*
-app.get('/Api/v1', Management.RouteCalled,Security.rateLimiterMiddleware,cache.route({ expire: 100  }),function (req, res) {
-  res.send('Api v1 version');
-});*/
 //---POKER ROUTING START
 
 
 let totalSocketBytes=0;
 var sizeof = require('object-sizeof');
 const SocketServer = require('ws').Server;
+let PortByConnectionMode = 0;
+if(ConnectionMode.getMainAddressByProductionMode()=="production"){
+  PortByConnectionMode=8080;
+}else{
+  PortByConnectionMode=3000;//local
+}
+
 const server = app
-  .listen(3000, () => console.log(`Listening on ${ 3000 }`));
+  .listen(PortByConnectionMode, () => console.log(`Listening on ${ PortByConnectionMode }`));
 
 const wss = new SocketServer({
   server
@@ -238,6 +239,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
    
          /*admin related */
       if (Object.Type == "NotifyPlayerDeposit") {
+        console.log("NotifyPlayerDeposit");
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.MessageReceiver) {
@@ -287,6 +289,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
       /*player related */
        
       else if (Object.Type == "NotifyPlayerDepositReceived") {
+        console.log("NotifyPlayerDeposit");
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.UserAccountID) {
