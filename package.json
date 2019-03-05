@@ -22,7 +22,11 @@
     "linq": "^3.1.1",
     "uuid": "^3.3.2",
     "request": "^2.88.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express-busboy": "^7.0.1",
+    "prettysize": "^2.0.0",
+    "request-stats": "^3.0.0",
+    "blocked": "^1.2.1"
   },
   "scripts": {
     "start": "node server.js"
