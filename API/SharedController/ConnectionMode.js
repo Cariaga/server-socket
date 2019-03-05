@@ -9,3 +9,10 @@ module.exports.getMainAddressByProductionMode = function () {
         return localhost;
     }
 }
+module.exports.getPortByProductionMode = function () {
+    if(process.env.NODE_ENV=="production"){
+        return 8080;
+    }else{
+        return 3000;
+    }
+}

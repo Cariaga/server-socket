@@ -84,12 +84,8 @@ console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode())
 let totalSocketBytes=0;
 var sizeof = require('object-sizeof');
 const SocketServer = require('ws').Server;
-let PortByConnectionMode = 0;
-if(ConnectionMode.getMainAddressByProductionMode()=="production"){
-  PortByConnectionMode=8080;
-}else{
-  PortByConnectionMode=8080;//local
-}
+let PortByConnectionMode = ConnectionMode.getPortByProductionMode();
+
 
 const server = app
   .listen(PortByConnectionMode, () => console.log(`Listening on ${ PortByConnectionMode }`));
