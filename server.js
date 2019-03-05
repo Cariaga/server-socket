@@ -48,7 +48,7 @@ app.options('*', cors());//to support webgl request and resolve post routing to 
 // configuration =================
 
 
-//app.use(express.static('AdminSocket'));
+app.use(express.static('AdminSocket'));
 //app.use(express.static('WalletOne'));
 
 //app.use(express.static(__dirname + '/public')); // set the static files location /public/img will be /img for users
@@ -80,9 +80,6 @@ app.get('/',function (req, res) {
   res.sendStatus(200);
 });
 console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode());
-const http = require('http');
-//---POKER ROUTING START
-app.use(express.static('AdminSocket'));
 
 let totalSocketBytes=0;
 var sizeof = require('object-sizeof');
@@ -91,7 +88,7 @@ let PortByConnectionMode = 0;
 if(ConnectionMode.getMainAddressByProductionMode()=="production"){
   PortByConnectionMode=8080;
 }else{
-  PortByConnectionMode=3000;//local
+  PortByConnectionMode=8080;//local
 }
 
 const server = app
