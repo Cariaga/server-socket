@@ -94,7 +94,7 @@ let totalSocketBytes=0;
 var sizeof = require('object-sizeof');
 const SocketServer = require('ws').Server;
 const server = app
-  .listen(8080, () => console.log(`Listening on ${ 8080 }`));
+  .listen(3000, () => console.log(`Listening on ${ 3000 }`));
 
 const wss = new SocketServer({
   server
