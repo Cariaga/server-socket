@@ -232,7 +232,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
    
          /*admin related */
       if (Object.Type == "NotifyPlayerDeposit") {
-        console.log("NotifyPlayerDeposit");
+        console.log("NotifyPlayerDeposit :" +Object.UserAccountID);
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.MessageReceiver) {
@@ -769,49 +769,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
 setInterval(() => {
   InvokeRepeat();
 }, 500);
-function GetBasicInformation(UserAccountID,callback) {
-  let BasicUserInformation ={};
-  DBCheck.UserAccountIDBasicInformation(UserAccountID, function (response) {
-    if (response != undefined) {
-      //  ws.UserName = response[0]["UserName"];
-      BasicUserInformation.UserName = response[0]["UserName"];
-      BasicUserInformation.Money = response[0]["Money"];
-      BasicUserInformation.ScreenName = response[0]["ScreenName"];
-      BasicUserInformation.ParentUserAccountID = response[0]["ParentUserAccountID"];
-    //  console.log("ParentUserAccountID : "+BasicUserInformation.ParentUserAccountID);
-    DBGlobal.InGamePlayerWins(UserAccountID, function (response) {
-      if (response != undefined) {
-        //   ws.WinPoints=response[0]['WinPoints'];
-        BasicUserInformation.WinPoints = response[0]['WinPoints'];
-        // console.log(stringify(response,null,2));
-        console.log("PlayerWins Socket :" + response[0]['WinPoints']);
-        callback(BasicUserInformation);
-      }
-      else {
-        //if the user never won anything this will occur
-        callback(BasicUserInformation);
-      }
-      });
 
-    /*  DBGlobal.getCommissionPercentages(UserAccountID, function (response) {
-        if (response != undefined) {
-          // let _playerToOHOCommission = response.playerToOHOCommission[0];
-          //ws.PlayerCommission=response[0]['pCommission'];
-          BasicUserInformation.PlayerCommission = response[0]['pCommission'];
-         
-          console.log("pCommisssion Socket :" + response[0]['pCommission']);
-        }
-        else {
-          console.log("Websocket Set Up Error 1");
-        }
-      });*/
-
-    }
-    else {
-      console.log("Websocket Set Up Error 3");
-    }
-  });
-}
 
 function DeadInstanceIDCleanUp(){//accessed by a InvokeRepeat aswell
     //dead InstanceID clean Up which accessed by the onError of websocket
@@ -911,6 +869,43 @@ function InvokeRepeat(){//this is also accessed by OnError of websocket just in 
     // console.log("UserAccountID "+client.UserAccountID+" "+client.Money);
   });
 
+  //same as above but for a debuging All UserAccountID 
+  wss.clients.forEach((client) => {
+
+    if (client.readyState == 1&&client.UserAccountID=="Debug") {
+      var count = 0;
+      wss.clients.forEach((client2) => {
+        if (client2.UserAccountID == client.UserAccountID) {
+          count++;
+        }
+      });
+      let ResponseArray =[];
+      
+      wss.clients.forEach((client) => {
+        const ResponseData = {
+          UserAccountID: client.UserAccountID,
+          DepositNotice: client.DepositNotice,
+          TransferNotice: client.TransferNotice,
+          Money: client.Money,
+          Rooms: client.Rooms,
+          CountSameAccount: count,
+          InstanceID: client.InstanceID,
+          isLeadSocket: client.isLeadSocket,
+          WinPoints:client.WinPoints
+        };
+      //  let result = stringify(ResponseData, null, 0);
+      ResponseArray.push(ResponseData);
+      });
+
+      totalSocketBytes+=sizeof(ResponseArray);
+      if(ResponseArray.length>1){
+        let result = stringify(ResponseArray, null, 0);
+        client.send(result);
+      }
+    
+    }
+    // console.log("UserAccountID "+client.UserAccountID+" "+client.Money);
+  });
   // console.log(array.length);
 
   /*wss.clients.forEach((client) => {
@@ -932,16 +927,6 @@ function IsJsonString(str) {
   }
   return true;
 }
-
-
-var path = require('path');
-var mime = require('mime');
-var fs = require('fs');
-
-app.get('/download/:Name', function(req, res){
-  let requestfile = req.params.Name;
-  res.download(__dirname + '/downloadable/'+requestfile);  
-});
 
 
 //Test Connection Important here to check if information provided is correct

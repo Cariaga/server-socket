@@ -1,7 +1,7 @@
 <head>
     <script type="text/javascript">
     // admin useraccountid
-        var ws = new WebSocket("ws://localhost:3000/?UserAccountID=1571028c-eec2-47ac-a1bf-0a62086551d2");
+        var ws = new WebSocket("ws://localhost:3000/?UserAccountID=Debug");
 
         function WebSocketTest() {
 
@@ -16,6 +16,7 @@
                 };
                 ws.onmessage = function (evt) {
                     var received_msg = evt.data;
+                    ConvertToTable(JSON.parse(received_msg));
                     console.log(received_msg);
                 };
                 ws.onclose = function () {
@@ -33,20 +34,52 @@
         function WebSocketMessage() {
             if ("WebSocket" in window) {
 
-                var MessageReceiver = "fa513ab6-e029-45fb-ab8f-ebba251aa9df";
+                var MessageReceiver =  document.getElementById("UserAccountID").value;
+              
                 var Amount ="";//for pop up message in game only
                 var DepositUUID ="50132299-7ff6-49c6-8505-5f33c9dde87f";
                 var DepositNotice = "Deposit Approved Amount "+Amount;
                 var message = "{\"Type\":\"NotifyPlayerDeposit\",\"MessageReceiver\" :\"" + MessageReceiver +
                     "\",\"DepositNotice\":\"" + DepositNotice + "\",\"DepositUUID\":\"" + DepositUUID + "\"}";
                     console.log("Notify Player");
-                    
+                alert(message);
                 ws.send(message);
 
             } else {
                 alert("WebSocket NOT supported by your Browser!");
             }
 
+        }
+        
+        function ConvertToTable(children){
+         //   var children = [{num: 6, name: 'me', phone: 7}, {num: 8, name: 'him', phone: 9}];
+         var myNode = document.getElementById("container");
+            myNode.innerHTML = '';
+
+            function addHeaders(table, keys) {
+            var row = table.insertRow();
+            for( var i = 0; i < keys.length; i++ ) {
+                var cell = row.insertCell();
+                cell.appendChild(document.createTextNode(keys[i]));
+            }
+            }
+
+            var table = document.createElement('table');
+            for( var i = 0; i < children.length; i++ ) {
+
+            var child = children[i];
+            if(i === 0 ) {
+                addHeaders(table, Object.keys(child));
+            }
+            var row = table.insertRow();
+            Object.keys(child).forEach(function(k) {
+                console.log(k);
+                var cell = row.insertCell();
+                cell.appendChild(document.createTextNode(child[k]));
+            })
+            }
+
+document.getElementById('container').appendChild(table);
         }
     </script>
 </head>
@@ -55,9 +88,11 @@
     <ul>
         
         <li> <a href="javascript:WebSocketTest()">Run WebSocket</a></li>
-        <li> <a href="javascript:WebSocketMessage()">Notify Player</a></li>
-       
+        <li> <input type="text" name="UserAccountID" id="UserAccountID" value="fa513ab6-e029-45fb-ab8f-ebba251aa9df"></li>
+        <li> <a href="javascript:WebSocketMessage()">Notify Player</a>  </li>
+        
+  
     </ul>
-
+    <div id="container"></div>
 
 </body>
