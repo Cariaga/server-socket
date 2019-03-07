@@ -558,7 +558,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               
             } else {
               // new buyin update or insert
-              if (client.Money - Object.BuyIn>0) {//the top must be an isleadScoket
+              if (client.Money - Object.BuyIn>=0) {//the top must be an isleadScoket
                 var NotFound = true;
                 var NewRooms = [];//the new rooms from is lead above
 
