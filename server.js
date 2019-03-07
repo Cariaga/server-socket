@@ -870,7 +870,8 @@ function InvokeRepeat(){//this is also accessed by OnError of websocket just in 
   });
 
   //same as above but for a debuging All UserAccountID 
- /* wss.clients.forEach((client) => {
+ /* not needed here we should have a socket dedicated for admin and debugging
+  wss.clients.forEach((client) => {
 
     if (client.readyState == 1&&client.UserAccountID=="Debug") {
       var count = 0;
