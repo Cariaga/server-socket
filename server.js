@@ -870,7 +870,7 @@ function InvokeRepeat(){//this is also accessed by OnError of websocket just in 
   });
 
   //same as above but for a debuging All UserAccountID 
-  wss.clients.forEach((client) => {
+ /* wss.clients.forEach((client) => {
 
     if (client.readyState == 1&&client.UserAccountID=="Debug") {
       var count = 0;
@@ -905,7 +905,7 @@ function InvokeRepeat(){//this is also accessed by OnError of websocket just in 
     
     }
     // console.log("UserAccountID "+client.UserAccountID+" "+client.Money);
-  });
+  });*/
   // console.log(array.length);
 
   /*wss.clients.forEach((client) => {
