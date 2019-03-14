@@ -71,7 +71,16 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
 //===========API===========
 let ConnectionMode=require('./API/SharedController/ConnectionMode');
 var uuidv4 = require('uuid/v4');
-//--testing for season based authentication END
+var RedisConnect=require("./API/SharedController/RedisConnect");
+
+
+//redis test example
+RedisConnect.SetMoneyAtRoom("Account1","room1",10);
+RedisConnect.SetMoneyAtRoom("Account2","room1",10);
+
+RedisConnect.GetMoneyAtRoom("Account1","room1",function(res){
+  console.log("redis get result : "+res);
+});
 
 
 //--Login End
@@ -161,7 +170,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
   });
 
 
-
+  ///RedisConnect.SetMoneyAtRoom("TestAccount", "TestRoom","TestBuyiN");//set the recent buyIn Money of all rooms of a specific userAccount from LeadAccount
 
 
   //Get 
@@ -228,6 +237,9 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
   //editing the money in the db shouln't happend without updating the socket aswell
   ws.onmessage = function (event) {
     //clients.size to get the length of the sockets connections
+
+  
+
 
     //console.log(event.data);
     if (IsJsonString(event.data)) {
@@ -351,7 +363,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         });
       }
 
-      else if (Object.Type == "RoomChanged") { //event withdraw room
+      else if (Object.Type == "RoomChanged") { //event  room
         //console.log("LeaveRoom "+ Object.RoomID);
         /*room player count */
         let RoomNames=[];
@@ -424,6 +436,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.UserAccountID) {
+              
               if(client.Rooms!=undefined){
                 var filtered = client.Rooms.filter(function (value) { //the oldest user account with the roomID // the oldest is basically the first item we find from 0 to N.. 
                   return value.RoomID == Object.RoomID;
@@ -431,11 +444,10 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
                 if (filtered.length > 0) {
                   if (filtered[0].BuyIn != undefined) { // LeaveRoom the oldest is basically the first item we find from 0 to N.. 
                     client.Money = parseInt(client.Money) + parseInt(filtered[0].BuyIn); //add back the money to the player
-  
+                    
                     var NewArrayfiltered = client.Rooms.filter(function (value) {
                       return value.RoomID !== Object.RoomID;
                     });
-  
                     client.Rooms = NewArrayfiltered;
                   }
                 } else {
@@ -445,7 +457,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
             }
           }
         });
-        
+        RedisConnect.SetMoneyAtRoom(ws.UserAccountID,Object.RoomID,0);//set the recent buyIn Money of all rooms of a specific userAccount from LeadAccount
       }
 
       else if (Object.Type == "ComputedBet") {
@@ -465,11 +477,13 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.UserAccountID&&client.isLeadSocket==true) { //we sync all same account bet value only updates one lead must exist in all instances
               console.log("Socket Bet");
-         
+              
               for (var i = 0; i < client.Rooms.length; ++i) {
                 if (client.Rooms[i].RoomID == Object.RoomID) {
                   if (parseInt(client.Rooms[i].BuyIn) - parseInt(Object.BetAmount) >= 0) {
                     client.Rooms[i].BuyIn = parseInt(client.Rooms[i].BuyIn) - parseInt(Object.BetAmount);
+
+                    RedisConnect.SetMoneyAtRoom(ws.UserAccountID,client.Rooms[i].RoomID,client.Rooms[i].BuyIn);//set the recent buyIn Money of all rooms of a specific userAccount from LeadAccount
 
                    /* ws.send(stringify({
                       Response: "Something"
@@ -479,6 +493,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
 
                     wss.clients.forEach((client2) => {
                       if(client2.UserAccountID==ws.UserAccountID){
+                       
                         client2.Rooms = NewRooms;//copy lead to children
                       }
                     });
@@ -542,15 +557,24 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
       } else if (Object.Type == "BuyIn") { //identify object type
+       
         ClientBuyIn(ws, Object,false);// false because its a normal buyin
       }
+      else if(Object.Type == "RequestRecovery"){
+       // console.log("Attempt Recovery not implemented");
+  
+        // we might need a dedicated recovery apprch method for room disconnection
+        // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
+        //console.log(Object);
+        RedisConnect.GetMoneyAtRoom(Object.UserAccountID,Object.RoomID,function(res){
+            console.log("Result : "+res);
+             
+              ClientBuyIn(ws, Object,true);// true because its a recovery
+              
+        });
+      }
     }
-    else if(Object.Type == "RequestRecovery"){
-      console.log("Attempt Recovery not implemented");
-      // we might need a dedicated recovery apprch method for room disconnection
-      // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
-      ClientBuyIn(ws, Object,true);// true because its a recovery
-    }
+ 
     
     else {
       //possibly a diffrent message type
@@ -717,7 +741,10 @@ function ClientBuyIn(ws, Object,IgnoreMainMoneyModification) {
   ws.isLobby = false;
   var BuyInRoom = Object;
   //console.log(BuyInRoom);
+ 
+  
   wss.clients.forEach((client) => {
+    
     //existing buyin
     if (client.UserAccountID == Object.UserAccountID && client.isLeadSocket == true) { //the lead role must always be passed when it leaves if not this code wont execute
       //  console.log("Buyin Money "+ Object.BuyIn);
@@ -755,11 +782,15 @@ function ClientBuyIn(ws, Object,IgnoreMainMoneyModification) {
            
 
               client.Rooms[i].BuyIn = (parseInt(client.Rooms[i].BuyIn) + parseInt(Object.BuyIn));
+              
+              RedisConnect.SetMoneyAtRoom(Object.UserAccountID,client.Rooms[i].RoomID, client.Rooms[i].BuyIn);//set the recent buyIn Money of all rooms of a specific userAccount from LeadAccount
+          
               //console.log(client.Rooms[i].BuyIn + Object.BuyIn);
               NotFound = false;
               // break;
             }
           }
+         
           NewRooms = client.Rooms; //pass the new value to childrens
           wss.clients.forEach((client) => {
             if (client.UserAccountID == ws.UserAccountID) {
@@ -786,6 +817,8 @@ function ClientBuyIn(ws, Object,IgnoreMainMoneyModification) {
         }
       }
     }
+   
+             
   });
   console.log("Buyin : " + BuyInRoom);
   wss.clients.forEach((client) => {
