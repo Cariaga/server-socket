@@ -16,8 +16,6 @@ var fs = require('fs')
 var morgan = require('morgan'); // log requests to the console (express4)
 var bodyParser = require('body-parser'); // pull information from HTML POST (express4)
 var beautify = require("json-beautify");
-var DBPostgres = require("./API/SharedController/DBPostgres");
-
 //const sendmail = require('sendmail')();
 const url = require('url');
 const stringify = require('json-stringify');
@@ -81,9 +79,6 @@ app.get('/',function (req, res) {
   //redis.set('foo', 'bar');
   res.sendStatus(200);
 });
-
-//DBPostgres.PGConnectTest();
-
 console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode());
 
 let totalSocketBytes=0;
@@ -547,17 +542,15 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
       } else if (Object.Type == "BuyIn") { //identify object type
-        
         ClientBuyIn(ws, Object,false);// false because its a normal buyin
       }
-      else if(Object.Type == "RequestRecovery"){
-        console.log("Attempt Recovery not implemented");
-        // we might need a dedicated recovery apprch method for room disconnection
-        // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
-        ClientBuyIn(ws, Object,true);// true because its a recovery
-      }
     }
-   
+    else if(Object.Type == "RequestRecovery"){
+      console.log("Attempt Recovery not implemented");
+      // we might need a dedicated recovery apprch method for room disconnection
+      // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
+      ClientBuyIn(ws, Object,true);// true because its a recovery
+    }
     
     else {
       //possibly a diffrent message type
