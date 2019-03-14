@@ -16,6 +16,8 @@ var fs = require('fs')
 var morgan = require('morgan'); // log requests to the console (express4)
 var bodyParser = require('body-parser'); // pull information from HTML POST (express4)
 var beautify = require("json-beautify");
+var DBPostgres = require("./API/SharedController/DBPostgres");
+
 //const sendmail = require('sendmail')();
 const url = require('url');
 const stringify = require('json-stringify');
@@ -79,6 +81,9 @@ app.get('/',function (req, res) {
   //redis.set('foo', 'bar');
   res.sendStatus(200);
 });
+
+//DBPostgres.PGConnectTest();
+
 console.log("ConnectionMode : "+ConnectionMode.getMainAddressByProductionMode());
 
 let totalSocketBytes=0;
@@ -106,6 +111,12 @@ function getRandomInt(min, max) {
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
 }
+
+Array.prototype.pushIfNotExist = function(element, comparer) { 
+  if (!this.inArray(comparer)) {
+      this.push(element);
+  }
+}; 
 
 wss.on('connection', (ws, req) => {
   ConnectedUsers++;
@@ -536,83 +547,19 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
       } else if (Object.Type == "BuyIn") { //identify object type
-        ws.isLobby=false;
-
-        var BuyInRoom = Object;
-        //console.log(BuyInRoom);
-        wss.clients.forEach((client) => {
-          //existing buyin
-          if (client.UserAccountID == Object.UserAccountID&&client.isLeadSocket==true) {//the lead role must always be passed when it leaves if not this code wont execute
-            //  console.log("Buyin Money "+ Object.BuyIn);
-            if (client.Rooms == undefined) { //when empty must inisialize only then the one bellow it can push
-              client.Rooms = [];
-            }
-            if (client.Rooms.length == 0) { //when no child or parent in room same account instances
-              client.Rooms.push({
-                RoomID: Object.RoomID,
-                BuyIn: Object.BuyIn,
-                InstanceID:ws.InstanceID
-              });
-              //console.log(client.Rooms);
-              client.Money = parseInt(client.Money) - parseInt(Object.BuyIn);
-              
-            } else {
-              // new buyin update or insert
-              if (client.Money - Object.BuyIn>=0) {//the top must be an isleadScoket
-                var NotFound = true;
-                var NewRooms = [];//the new rooms from is lead above
-
-                for (var i = 0; i < client.Rooms.length; ++i) {//updates the lead accout
-                  if (client.Rooms[i].RoomID == Object.RoomID&&client.UserAccountID==ws.UserAccountID) { //Match Found Update Instead
-                    console.log("Match Found Update Instead");
-                    client.Money = (parseInt(client.Money) - parseInt(Object.BuyIn));
-                    client.Rooms[i].BuyIn =(parseInt(client.Rooms[i].BuyIn) + parseInt(Object.BuyIn));
-                    //console.log(client.Rooms[i].BuyIn + Object.BuyIn);
-                    NotFound = false;
-                    // break;
-                  }
-                }
-
-                NewRooms= client.Rooms;//pass the new value to childrens
-
-                wss.clients.forEach((client) => {
-                  if(client.UserAccountID==ws.UserAccountID){
-                    client.Rooms = NewRooms;
-                  }
-                
-                });
-                if (NotFound == true) { // nothing found so we add it instead
-                  client.Rooms.push({
-                    RoomID: Object.RoomID,
-                    BuyIn: Object.BuyIn,
-                    InstanceID:ws.InstanceID
-                  });
-                  //console.log(client.Rooms);
-                  client.Money = parseInt(client.Money) - parseInt(Object.BuyIn);
-                }
-              } else {
-                console.log("Not Enough Money");
-              }
-
-            }
-          }
-        });
-        console.log("Buyin : " + BuyInRoom);
-
-        wss.clients.forEach((client) => {
-          if (client.readyState == 1) {
-            for(let i=0;i<ws.ParentUserAccountIDList.length;++i){
-              if(ws.ParentUserAccountIDList.includes(client.UserAccountID)){
-                console.log("Parent To Notify "+client.UserAccountID);
-                client.send(stringify({
-                  Response: "PlayerBuyIn"
-                }, null, 0));
-              }
-            }
-          }
-        });
+        
+        ClientBuyIn(ws, Object,false);// false because its a normal buyin
       }
-    } else {
+      else if(Object.Type == "RequestRecovery"){
+        console.log("Attempt Recovery not implemented");
+        // we might need a dedicated recovery apprch method for room disconnection
+        // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
+        ClientBuyIn(ws, Object,true);// true because its a recovery
+      }
+    }
+   
+    
+    else {
       //possibly a diffrent message type
       console.log("some message : " + event.data);
     }
@@ -770,6 +717,97 @@ setInterval(() => {
   InvokeRepeat();
 }, 500);
 
+//IgnoreMainMoneyModification is used to ignore changes from main money
+// it can be used as a recovery approch during a room socket disconnection but not a network socket disconnection
+//IgnoreMainMoneyModification - false because its a normal buyin if its for recovery 
+function ClientBuyIn(ws, Object,IgnoreMainMoneyModification) {
+  ws.isLobby = false;
+  var BuyInRoom = Object;
+  //console.log(BuyInRoom);
+  wss.clients.forEach((client) => {
+    //existing buyin
+    if (client.UserAccountID == Object.UserAccountID && client.isLeadSocket == true) { //the lead role must always be passed when it leaves if not this code wont execute
+      //  console.log("Buyin Money "+ Object.BuyIn);
+      if (client.Rooms == undefined) { //when empty must inisialize only then the one bellow it can push
+        client.Rooms = [];
+      }
+      if (client.Rooms.length == 0) { //when no child or parent in room same account instances
+        client.Rooms.push({
+          RoomID: Object.RoomID,
+          BuyIn: Object.BuyIn,
+          InstanceID: ws.InstanceID
+        });
+        //console.log(client.Rooms);
+        if(IgnoreMainMoneyModification==true){       
+             //do nothing to the main money
+
+        }else{
+          client.Money = parseInt(client.Money) - parseInt(Object.BuyIn);//deducting Money
+        }
+      
+      }
+      else {
+        // new buyin update or insert
+        if (client.Money - Object.BuyIn >= 0) { //the top must be an isleadScoket
+          var NotFound = true;
+          var NewRooms = []; //the new rooms from is lead above
+          for (var i = 0; i < client.Rooms.length; ++i) { //updates the lead accout
+            if (client.Rooms[i].RoomID == Object.RoomID && client.UserAccountID == ws.UserAccountID) { //Match Found Update Instead
+              console.log("Match Found Update Instead");
+              if(IgnoreMainMoneyModification==true){
+                //do nothing to the main money
+              }else{
+                client.Money = (parseInt(client.Money) - parseInt(Object.BuyIn));//deducting Money
+              }
+           
+
+              client.Rooms[i].BuyIn = (parseInt(client.Rooms[i].BuyIn) + parseInt(Object.BuyIn));
+              //console.log(client.Rooms[i].BuyIn + Object.BuyIn);
+              NotFound = false;
+              // break;
+            }
+          }
+          NewRooms = client.Rooms; //pass the new value to childrens
+          wss.clients.forEach((client) => {
+            if (client.UserAccountID == ws.UserAccountID) {
+              client.Rooms = NewRooms;
+            }
+          });
+          if (NotFound == true) { // nothing found so we add it instead
+            client.Rooms.push({
+              RoomID: Object.RoomID,
+              BuyIn: Object.BuyIn,
+              InstanceID: ws.InstanceID
+            });
+            //console.log(client.Rooms);
+            if(IgnoreMainMoneyModification==true){
+                        //do nothing to the main money
+            }else{
+              client.Money = parseInt(client.Money) - parseInt(Object.BuyIn);//deducting Money
+            }
+           
+          }
+        }
+        else {
+          console.log("Not Enough Money");
+        }
+      }
+    }
+  });
+  console.log("Buyin : " + BuyInRoom);
+  wss.clients.forEach((client) => {
+    if (client.readyState == 1) {
+      for (let i = 0; i < ws.ParentUserAccountIDList.length; ++i) {
+        if (ws.ParentUserAccountIDList.includes(client.UserAccountID)) {
+          console.log("Parent To Notify " + client.UserAccountID);
+          client.send(stringify({
+            Response: "PlayerBuyIn"
+          }, null, 0));
+        }
+      }
+    }
+  });
+}
 
 function DeadInstanceIDCleanUp(){//accessed by a InvokeRepeat aswell
     //dead InstanceID clean Up which accessed by the onError of websocket

@@ -1,0 +1,232 @@
+//any socket libray shouln't share variable accross worker threads meaning global public variables //https://github.com/SocketCluster/socketcluster/issues/44
+
+
+apiVersion: v1
+kind: Template
+metadata:
+  name: timescaledb
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${OC_LABEL_APP_NAME}
+    name: ${OC_NAME}
+  spec:
+    ports:
+    - name: 5432-tcp
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      app: ${OC_LABEL_APP_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${OC_LABEL_APP_NAME}
+    name: ${OC_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${OC_LABEL_APP_NAME}
+      deploymentconfig: ${OC_LABEL_DEPLOYMENT_CONFIG}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${OC_LABEL_APP_NAME}
+          deploymentconfig: ${OC_LABEL_DEPLOYMENT_CONFIG}
+      spec:
+        containers:
+        - env:
+          - name: POSTGRES_USER
+            value: ${POSTGRES_USER}
+          - name: POSTGRES_PASSWORD
+            value: ${POSTGRES_PASSWORD}
+          - name: POSTGRES_DB
+            value: ${POSTGRES_DB}
+          imagePullPolicy: IfNotPresent
+          name: timescaledb
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: postgres-data
+          - mountPath: /docker-entrypoint-initdb.d
+            name: postgres-sql-init-scripts
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext:
+          runAsUser: 0
+        serviceAccountName: ${OC_SA}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - persistentVolumeClaim:
+            claimName: ${OC_NAME}
+          name: postgres-data
+        - configMap:
+            defaultMode: 420
+            name: ${OC_NAME}
+          name: postgres-sql-init-scripts
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - timescaledb
+        from:
+          kind: ImageStreamTag
+          name: ${OC_NAME}:latest-pg10
+          namespace: ${OC_NAMESPACE}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: ${OC_LABEL_APP_NAME}
+    name: ${OC_NAME}
+  spec:
+    accessModes:
+    - "ReadWriteOnce"
+    resources:
+      requests:
+        storage: 1Gi
+    volumeName: pv0001
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${OC_LABEL_APP_NAME}
+    name: ${OC_NAME}
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - from:
+        kind: DockerImage
+        name: timescale/timescaledb:latest-pg10
+      importPolicy: {}
+      name: latest-pg10
+      referencePolicy:
+        type: Source
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: ${OC_LABEL_APP_NAME}
+    name: ${OC_NAME}
+  data:
+    init.sql: |
+      CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+
+      CREATE TABLE t_person (
+        id          BIGINT            NOT NULL,
+        first_name  VARCHAR(150)      NOT NULL,
+        last_name   VARCHAR(150)      NOT NULL
+      );
+
+      ALTER TABLE t_person ADD CONSTRAINT t_person_pk PRIMARY KEY (id);
+
+      CREATE TABLE t_reading (
+        person_id       BIGINT            NOT NULL,
+        read_at         TIMESTAMPTZ       NOT NULL,
+        device_id       UUID              NOT NULL,
+        description     VARCHAR(150)      NOT NULL,
+        value           NUMERIC(40,10)    NOT NULL,
+        unit            VARCHAR(300)      NOT NULL
+      );
+
+      ALTER TABLE t_reading ADD CONSTRAINT t_reading_fk_person_id
+        FOREIGN KEY (person_id) REFERENCES t_person (id) MATCH FULL;
+
+      SELECT create_hypertable('t_reading', 'read_at');
+
+      -- does not work:
+      -- combo EclipseLink + JDBC postgres driver
+      -- cannot interface with functions having multiple OUT parameters
+      CREATE OR REPLACE FUNCTION get_last_position(
+        IN in_person_id BIGINT,
+        OUT out_latitude NUMERIC(40,10),
+        OUT out_longitude NUMERIC(40,10),
+        OUT out_height NUMERIC(40,10)
+      )
+      AS $$
+        BEGIN
+          SELECT last(value, read_at) INTO out_latitude
+          FROM t_reading
+          WHERE person_id = in_person_id AND description = 'latitude';
+          SELECT last(value, read_at) INTO out_longitude
+          FROM t_reading
+          WHERE person_id = in_person_id AND description = 'longitude';
+          SELECT last(value, read_at) INTO out_height
+          FROM t_reading
+          WHERE person_id = in_person_id AND description = 'height';
+        END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE VIEW v_avg_pulse AS
+      SELECT person_id, time_bucket('1 minutes', read_at) AS t, avg(value) as avg_pulse
+       FROM t_reading
+       WHERE description = 'pulse'
+       GROUP BY person_id, t
+       ORDER BY person_id, t DESC;
+parameters:
+- name: OC_NAMESPACE
+  displayName: oc namespace
+  description: oc namespace
+  value: server-socket
+  required: true
+- name: OC_SA
+  displayName: service account for postgres pod
+  description: service account for postgres pod that can start container under root
+  value: postgresql
+  required: true
+- name: OC_NAME
+  displayName: name of the objects
+  description: value for the name property of the objects created by the template
+  value: timescaledb
+  required: true
+- name: OC_LABEL_APP_NAME
+  displayName: app label to use
+  description: value for the "app" label
+  value: timescaledb
+  required: true
+- name: OC_LABEL_DEPLOYMENT_CONFIG
+  displayName: deploymentconfig label to use
+  description: value for the "deploymentconfig" label
+  value: timescaledb
+  required: true
+- name: POSTGRES_USER
+  displayName: name of the super user for PostgreSQL
+  description: name of the super user for PostgreSQL
+  value: postgresql
+  required: true
+- name: POSTGRES_PASSWORD
+  displayName: password for the super user of PostgreSQL
+  description: password for the super user of PostgreSQL
+  value: postgresql
+  required: true
+- name: POSTGRES_DB
+  displayName: name of the default DB of the super user of PostgreSQL
+  description: name of the default DB of the super user of PostgreSQL
+  value: postgresql
+  required: true
