@@ -28,6 +28,15 @@
                 alert("WebSocket NOT supported by your Browser!");
             }
         }
+        function Kick(){
+            let RequestingUserAccountID = "Requesting UserAccountID";
+            let TargetUserAccountID = "34cf1e1e-ace7-4613-8bf3-77f9a444f082";
+            
+            var message = "{\"Type\":\"Kick\",\"TargetUserAccountID\" :\"" + TargetUserAccountID +
+                    "\",\"Kick\":true,\"RequestingUserAccountID\" :\"" + RequestingUserAccountID +"\"}";
+                    console.log(message);
+                ws.send(message);
+        }
         WebSocketTest();//connect
 
         function WebSocketMessage() {
@@ -56,7 +65,7 @@
         
         <li> <a href="javascript:WebSocketTest()">Run WebSocket</a></li>
         <li> <a href="javascript:WebSocketMessage()">Notify Player</a></li>
-       
+        <li> <a href="javascript:Kick()">Kick Player</a></li>
     </ul>
 
 

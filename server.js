@@ -149,8 +149,30 @@ wss.on('connection', (ws, req) => {
 
 /*-------End Player Checking First Socket*/
 
+function LateStart(){
+  wss.clients.forEach((client) => {
+    if (client.readyState == 1) {
+      if(ws.ParentUserAccountIDList!=null && ws.ParentUserAccountIDList != undefined ){
 
- 
+        let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+
+        for(let i=0;i<ParentUserAccountIDList.length;++i){
+
+          if(ParentUserAccountIDList[i]==client.UserAccountID&&ws.UserAccountID!=client.UserAccountID){
+            console.log("Index : "+i+" count : "+ParentUserAccountIDList.length+" connection Parent To Notify "+client.UserAccountID);
+            client.send(stringify({
+              Response: "Connect",
+              UserAccountID : ws.UserAccountID
+            }, null, 0));
+          }
+        }
+      }
+     
+    }
+  });
+}
+setTimeout(function(){LateStart(); }, 5000);//wait for a while before offically notifying new connection 
+
 /*the http approch is used because direct to database access is not allowed*/
 request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/UserAccountID/'+UserAccountID, function (error, response, result) {
    // console.log('error:', error); // Print the error if one occurred
@@ -164,6 +186,8 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
 
     let ParentUserAccountIDList = body.ParentUserAccountID; 
     ws.ParentUserAccountIDList = ParentUserAccountIDList;
+
+
 
    // ParentListOfPlayer();
     //console.log('body result:', body); 
@@ -204,6 +228,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
     ws.Rooms = SyncRoomVar;
     SyncRoomVar = undefined;
   }
+
   //console.log(ws.Money);
   
   
@@ -238,7 +263,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
   ws.onmessage = function (event) {
     //clients.size to get the length of the sockets connections
 
-  
+    
 
 
     //console.log(event.data);
@@ -312,6 +337,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
       }
+      
       else if (Object.Type == "NotifyPlayerTrasferReceived") {
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
@@ -333,8 +359,6 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
             if (client.UserAccountID == Object.UserAccountID) {
                   console.log("UserAccountID Sender : "+client.UserAccountID+ " Matched "+Object.UserAccountID);
                   client.Money = parseInt(client.Money) - parseInt(Object.TransferAmount); //add back the money to the player
-                  
-                  
             }
           }
         });
@@ -351,6 +375,21 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
             }
           }
         });
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("Transfer Parent To Notify "+client.UserAccountID);
+                client.send(stringify({
+                  Response: "PlayerTransfer",
+                  UserAccountID : ws.UserAccountID
+                }, null, 0));
+              }
+            }
+          }
+        });
       }
       else if (Object.Type == "Withdraw") { //event withdraw room
         //console.log("LeaveRoom "+ Object.RoomID);
@@ -358,6 +397,20 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.UserAccountID) {
                   client.Money = parseInt(client.Money) - parseInt(Object.WithdrawAmount); //add back the money to the player
+            }
+          }
+        });
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("Withdraw Parent To Notify "+client.UserAccountID);
+                client.send(stringify({
+                  Response: "Withdraw",
+                  UserAccountID : ws.UserAccountID
+                }, null, 0));
+              }
             }
           }
         });
@@ -394,41 +447,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           request(ConnectionMode.getMainAddressByProductionMode()+'/PlayerRooms/Rooms/'+RoomNames+'/UserAccountID/'+UserAccountID, function (error, response, result) {
 
           });
-
-
-     /*//old
-        var query3 = "UPDATE `sampledb`.`players` SET `CurrentRoomName` = \'"+RoomNames+"\' WHERE (`UserAccountID` = \'"+UserAccountID+"\');";
-        console.log("RoomChange "+Object.RoomName);
-       // console.log(Json.stringify(ws.Rooms,));
-     
-
-        DBConnect.DBConnect(query3, function (response) {
-          if (response != undefined) {
-            
-            //console.log(response[0]);
-          }
-        });*/
-
-
-        //old
-       /* wss.clients.forEach((client) => {
-
-          if (client.readyState == 1) {
-            if (client.UserAccountID == ws.UserAccountID) {
-
-              var _UserAccountID = Object.UserAccountID;
-
-              var query3 = "UPDATE `sampledb`.`players` SET `CurrentRoomName` = \'"+Object.RoomName+"\' WHERE (`UserAccountID` = \'"+_UserAccountID+"\');";
-              console.log("RoomChange "+Object.RoomName);
-              DBConnect.DBConnect(query3, function (response) {
-                if (response != undefined) {
-                  
-                  //console.log(response[0]);
-                }
-              });
-            }
-          }
-        });*/
+          
       }
       else if (Object.Type == "LeaveRoom") { //event leave room
         ws.isLobby=true;
@@ -458,6 +477,20 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
         RedisConnect.SetMoneyAtRoom(ws.UserAccountID,Object.RoomID,0);//set the recent buyIn Money of all rooms of a specific userAccount from LeadAccount
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("LeaveRoom Parent To Notify "+client.UserAccountID);
+                client.send(stringify({
+                  Response: "LeaveRoom",
+                  UserAccountID : ws.UserAccountID
+                }, null, 0));
+              }
+            }
+          }
+        });
       }
 
       else if (Object.Type == "ComputedBet") {
@@ -514,11 +547,13 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
-            for(let i=0;i<ws.ParentUserAccountIDList.length;++i){
-              if(ws.ParentUserAccountIDList.includes(client.UserAccountID)){
-                console.log("Parent To Notify "+client.UserAccountID);
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("Bet Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "PlayerBet"
+                  Response: "PlayerBet",
+                  UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
             }
@@ -552,16 +587,59 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
             if(client.UserAccountID==ws.UserAccountID){//only add to te same Account but diffrent instances
               client.WinPoints++;//add Win Points to All Same Player no need to filter lead
             }
-          
-
+          }
+        });
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("Win Parent To Notify "+client.UserAccountID);
+                client.send(stringify({
+                  Response: "Win",
+                  UserAccountID : ws.UserAccountID
+                }, null, 0));
+              }
+            }
           }
         });
       } else if (Object.Type == "BuyIn") { //identify object type
        
         ClientBuyIn(ws, Object,false);// false because its a normal buyin
+
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            for(let i=0;i<ParentUserAccountIDList.length;++i){
+              if(ParentUserAccountIDList[i]==client.UserAccountID){
+                console.log("BuyIn Parent To Notify "+client.UserAccountID);
+                client.send(stringify({
+                  Response: "BuyIn",
+                  UserAccountID : ws.UserAccountID
+                }, null, 0));
+              }
+            }
+          }
+        });
+      }
+      else if (Object.Type == "Kick") {
+       
+        //need to verify if the kicker is an admin
+        wss.clients.forEach((client) => {
+          if (client.readyState == 1) {
+            if (client.UserAccountID == Object.TargetUserAccountID) {
+              console.log("Kick Player : "+Object.TargetUserAccountID);//will pop multiple times if we have instances of same account
+              let ToSend = stringify({
+                Type: "Kick",
+                UserAccountID :  Object.TargetUserAccountID
+              }, null, 0);
+              client.send(ToSend);
+            }
+          }
+        });
       }
       else if(Object.Type == "RequestRecovery"){
-       // console.log("Attempt Recovery not implemented");
+      
   
         // we might need a dedicated recovery apprch method for room disconnection
         // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
@@ -572,6 +650,20 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               ClientBuyIn(ws, Object,true);// true because its a recovery
               
         });
+      }
+      else if(Object.Type == "SendMessage"){
+       // console.log("Attempt Recovery not implemented");
+  
+        // we might need a dedicated recovery apprch method for room disconnection
+        // instead of ClientBuyIn we need to store in database only to the socketInstanceID instead of UserAccountID aswell
+        //console.log(Object);
+       /* RedisConnect.GetMoneyAtRoom(Object.UserAccountID,Object.RoomID,function(res){
+            console.log("Result : "+res);
+             
+              ClientBuyIn(ws, Object,true);// true because its a recovery
+              
+        });*/
+
       }
     }
  
