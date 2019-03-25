@@ -279,36 +279,20 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             if (client.UserAccountID == Object.MessageReceiver) {
-                  /*do not update client.Money on this.
-                   the client will update it self from the current money on the db upon notification */
                   client.DepositNotice = Object.DepositNotice; 
                   let DepositUUID = Object.DepositUUID;
                   if(DepositUUID!=""){
                     console.log("Deposit UUID"+DepositUUID);
-
-
                     //newer version
                     //DepositApproveCheck/UserTransactionID/:UserTransactionID/
+                    console.log("Approved Deposit Notify check : "+ConnectionMode.getMainAddressByProductionMode()+'/DepositApproveCheck/UserTransactionID/'+DepositUUID);
+
                     request(ConnectionMode.getMainAddressByProductionMode()+'/DepositApproveCheck/UserTransactionID/'+DepositUUID, function (error, response, result) {
-                    /*do not update client.Money on this.
-                     the client will update it self from the current money on the db upon notification */
-                     
+                      let Object = JSON.parse(response.body) ;
+
+                      console.log("Amount Be updated : "+Object.Amount);
+                      client.Money = (parseInt(client.Money)+parseInt(Object.Amount));//we update the player
                     });
-
-                   /*
-                   old
-                   var query2 = "SELECT Amount FROM sampledb.transactions where TransactionStatus='approved' and TransactionType='deposit' and UserTransactionID=\'"+DepositUUID+"\';";
-
-                    console.log(query2);
-                    DBConnect.DBConnect(query2, function (response) {
-                      if (response != undefined) {
-
-                        client.Money = (parseInt(client.Money)+parseInt(response[0].Amount));
-                        console.log("New Client Money "+(parseInt(client.Money)+parseInt(response[0].Amount)));
-                      }else{
-                        console.log('May have executed before the api route of aproval');
-                      }
-                    });*/
 
                   }else{
                     console.log("UUID EMpty");

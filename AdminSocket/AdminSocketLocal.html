@@ -37,7 +37,7 @@
                 var MessageReceiver =  document.getElementById("UserAccountID").value;
               
                 var Amount ="";//for pop up message in game only
-                var DepositUUID ="50132299-7ff6-49c6-8505-5f33c9dde87f";
+                var DepositUUID ="a15491bd-d220-42cc-b9f0-31c8f59f9f0c";
                 var DepositNotice = "Deposit Approved Amount "+Amount;
                 var message = "{\"Type\":\"NotifyPlayerDeposit\",\"MessageReceiver\" :\"" + MessageReceiver +
                     "\",\"DepositNotice\":\"" + DepositNotice + "\",\"DepositUUID\":\"" + DepositUUID + "\"}";
@@ -48,7 +48,6 @@
             } else {
                 alert("WebSocket NOT supported by your Browser!");
             }
-
         }
         function Kick(){
             let RequestingUserAccountID = "Requesting UserAccountID";
@@ -98,7 +97,7 @@ document.getElementById('container').appendChild(table);
         
         <li> <a href="javascript:WebSocketTest()">Run WebSocket</a></li>
         <li> <input type="text" name="UserAccountID" id="UserAccountID" value="fa513ab6-e029-45fb-ab8f-ebba251aa9df"></li>
-        <li> <a href="javascript:WebSocketMessage()">Notify Player</a>  </li>
+        <li> <a href="javascript:WebSocketMessage()">Notify Player Depost</a>  </li>
         <li> <a href="javascript:Kick()">Kick Player</a></li>
   
     </ul>
