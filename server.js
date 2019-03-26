@@ -161,7 +161,7 @@ function LateStart(){
           if(ParentUserAccountIDList[i]==client.UserAccountID&&ws.UserAccountID!=client.UserAccountID){
             console.log("Index : "+i+" count : "+ParentUserAccountIDList.length+" connection Parent To Notify "+client.UserAccountID);
             client.send(stringify({
-              Response: "Connect",
+              Type: "Connect",
               UserAccountID : ws.UserAccountID
             }, null, 0));
           }
