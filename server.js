@@ -187,10 +187,11 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
     console.log("Parents of connecting Account :"+ body.ParentUserAccountID);
     //body  body.ParentUserAccountID contains all of its parent account of a player
     let ParentUserAccountIDList = body.ParentUserAccountID;
-    //we filter out only the operating head office but if we want to notify the other account types we increase the range to get the closer relatives
-    // alternatively better solution we filter which parents to notify by providing thair account types right before we send it you can see this by looking for admin response e.g //admin comment or "Parent To Notify" console log
+    //(added fast solution)we filter out only the operating head office but if we want to notify the other account types we increase the range to get the closer relatives
+    //(not added yet) alternatively better solution we filter which parents to notify by providing thair account types right before we send it you can see this by looking for admin response e.g //admin comment or "Parent To Notify" console log
     let filteredList ="";
     if(ParentUserAccountIDList!=undefined&&ParentUserAccountIDList!=null){
+      //global filter
       filteredList = ParentUserAccountIDList.split(',').reverse().slice(0,1).join(',')+",";//0,1  means operating only without the silce it notifies all// the order of accounts should always be operating>Head>Distributor>Shop to remain consistent
     }else{
       filteredList="";
@@ -614,6 +615,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
+            console.log('count : '+ParentUserAccountIDList.length);
             for(let i=0;i<ParentUserAccountIDList.length;++i){
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("BuyIn Parent To Notify "+client.UserAccountID);
@@ -917,18 +919,7 @@ function ClientBuyIn(ws, Object,IgnoreMainMoneyModification) {
              
   });
   console.log("Buyin : " + BuyInRoom);
-  wss.clients.forEach((client) => {
-    if (client.readyState == 1) {
-      for (let i = 0; i < ws.ParentUserAccountIDList.length; ++i) {
-        if (ws.ParentUserAccountIDList.includes(client.UserAccountID)) {
-          console.log("Parent To Notify " + client.UserAccountID);
-          client.send(stringify({
-            Response: "PlayerBuyIn"
-          }, null, 0));
-        }
-      }
-    }
-  });
+
 }
 
 function DeadInstanceIDCleanUp(){//accessed by a InvokeRepeat aswell
