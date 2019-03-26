@@ -187,6 +187,9 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
     let ParentUserAccountIDList = body.ParentUserAccountID; 
     ws.ParentUserAccountIDList = ParentUserAccountIDList;
 
+    setInterval(function(){
+      
+    },1000);
 
 
    // ParentListOfPlayer();
@@ -367,7 +370,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("Transfer Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "PlayerTransfer",
+                  Type: "PlayerTransfer",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
@@ -392,13 +395,14 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("Withdraw Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "Withdraw",
+                  Type: "Withdraw",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
             }
           }
         });
+        
       }
 
       else if (Object.Type == "RoomChanged") { //event  room
@@ -469,7 +473,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("LeaveRoom Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "LeaveRoom",
+                  Type: "LeaveRoom",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
@@ -485,7 +489,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
         let ConvertedBet = (parseInt(Object.BetAmount)-result);
         console.log("ConvertedBet :" +ConvertedBet);
         ws.send(stringify({
-          Response: "ConvertedBet",
+          Type: "ConvertedBet",
           ConvertedBet:ConvertedBet,
         }, null, 0));
       }
@@ -537,7 +541,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("Bet Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "PlayerBet",
+                  Type: "PlayerBet",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
@@ -581,7 +585,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("Win Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "Win",
+                  Type: "Win",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
@@ -599,7 +603,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
               if(ParentUserAccountIDList[i]==client.UserAccountID){
                 console.log("BuyIn Parent To Notify "+client.UserAccountID);
                 client.send(stringify({
-                  Response: "BuyIn",
+                  Type: "BuyIn",
                   UserAccountID : ws.UserAccountID
                 }, null, 0));
               }
