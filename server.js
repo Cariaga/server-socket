@@ -159,6 +159,7 @@ function LateStart(){
         for(let i=0;i<ParentUserAccountIDList.length;++i){
 
           if(ParentUserAccountIDList[i]==client.UserAccountID&&ws.UserAccountID!=client.UserAccountID){
+            //admin
             console.log("Index : "+i+" count : "+ParentUserAccountIDList.length+" connection Parent To Notify "+client.UserAccountID);
             client.send(stringify({
               Type: "Connect",
@@ -183,9 +184,23 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
     ws.PlayerCommission = body.PlayerCommission;
     ws.Money = body.Money;
     ws.ScreenName = body.ScreenName;
+    console.log("Parents of connecting Account :"+ body.ParentUserAccountID);
+    //body  body.ParentUserAccountID contains all of its parent account of a player
+    let ParentUserAccountIDList = body.ParentUserAccountID;
+    //we filter out only the operating head office but if we want to notify the other account types we increase the range to get the closer relatives
+    // alternatively better solution we filter which parents to notify by providing thair account types right before we send it you can see this by looking for admin response e.g //admin comment or "Parent To Notify" console log
+    let filteredList ="";
+    if(ParentUserAccountIDList!=undefined&&ParentUserAccountIDList!=null){
+      filteredList = ParentUserAccountIDList.split(',').reverse().slice(0,1).join(',')+",";//0,1  means operating only without the silce it notifies all// the order of accounts should always be operating>Head>Distributor>Shop to remain consistent
+    }else{
+      filteredList="";
+    }
 
-    let ParentUserAccountIDList = body.ParentUserAccountID; 
-    ws.ParentUserAccountIDList = ParentUserAccountIDList;
+    console.log("Filtered Parent :"+ filteredList);
+
+    ws.ParentUserAccountIDList =filteredList;
+
+
 
     setInterval(function(){
       
