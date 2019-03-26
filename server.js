@@ -288,7 +288,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
                     console.log("Approved Deposit Notify check : "+ConnectionMode.getMainAddressByProductionMode()+'/DepositApproveCheck/UserTransactionID/'+DepositUUID);
 
                     request(ConnectionMode.getMainAddressByProductionMode()+'/DepositApproveCheck/UserTransactionID/'+DepositUUID, function (error, response, result) {
-                      let Object = JSON.parse(response.body) ;
+                      let Object = JSON.parse(response.body);
 
                       console.log("Amount Be updated : "+Object.Amount);
                       client.Money = (parseInt(client.Money)+parseInt(Object.Amount));//we update the player
@@ -384,6 +384,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
             }
           }
         });
+        //to admin
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
@@ -528,7 +529,7 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
           }
         });
         
-        
+        //to admin
         wss.clients.forEach((client) => {
           if (client.readyState == 1) {
             let ParentUserAccountIDList = ws.ParentUserAccountIDList.split(",");
