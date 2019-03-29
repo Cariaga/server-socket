@@ -672,13 +672,11 @@ request(ConnectionMode.getMainAddressByProductionMode()+'/GetBasicInformation/Us
 
       }
     }
- 
-    
     else {
       //possibly a diffrent message type
       console.log("some message : " + event.data);
     }
-
+  
   }
 
   ws.onerror = function (event) {
